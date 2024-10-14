@@ -5,10 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-name = "zkFFT"
-path = "src/test.rs"
-
 [dependencies]
 halo2_proofs = "0.3.0"
 halo2_gadgets = "0.3.0"

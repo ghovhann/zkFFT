@@ -4,18 +4,33 @@ use crate::utils::*;
 
 pub fn prove<C: CurveAffine, E: EncodedChallenge<C>, T: TranscriptWrite<C, E>>(
     transcript: &mut T,
-    witness: WipWitness<C>,
+    witness: Vec<WipWitness<C>>,
     generators_g: Vec<C>,
     generator_g: Vec<C>,
     generator_h: C,
+    committments: Vec<C>,
 ) -> WipProof<C> {
     let rng = OsRng;
 
+    for i in 0..committments.len() {
+        transcript.write_point(committments[i]).unwrap();
+    }
+    let s = transcript_e(transcript);
+
     let mut g_bold = generators_g.clone();
 
-    let mut a = witness.a.clone();
-    let mut b = witness.b.clone();
-    let mut alpha = witness.alpha;
+    let witness_a = witness
+        .iter() // Borrow the witness
+        .map(|w| w.a.clone()) // Extract references to the scalars from each struct
+        .collect();
+    let mut a = scale_and_sum_vectors::<C>(witness_a, s);
+    let mut b = witness[0].b.clone(); //domain should be the same for all of them
+    let witness_alpha = witness
+    .into_iter()
+    .map(|w| w.alpha) // Extract the scalars from each struct
+    .collect();
+    let mut alpha = scale_and_sum::<C>(witness_alpha, s);
+
     for b_i in b.iter() {
         assert_eq!(a.len(), b_i.len());
     }

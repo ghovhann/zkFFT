@@ -19,5 +19,9 @@ rayon = "1.10.0"
 criterion = "0.4"
 
 [[bench]]
-name = "zkFFT"
+name = "single_zkFFT"
+harness = false
+
+[[bench]]
+name = "aggregated_zkFFT"
 harness = false

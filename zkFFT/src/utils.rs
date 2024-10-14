@@ -26,6 +26,42 @@ pub enum P<C: CurveAffine> {
     Terms(Vec<(C::Scalar, C)>),
 }
 
+pub fn scale_and_sum_vectors<C: CurveAffine>(vectors: Vec<Vec<C::Scalar>>, scalar: C::Scalar) -> Vec<C::Scalar> {
+    // Initialize a result vector with zeros having the same length as the first vector
+    let mut result = vec![C::Scalar::ZERO; vectors[0].len()];
+
+    for (index, vector) in vectors.into_iter().enumerate() {
+        let power = scalar.pow_vartime([index as u64]); // Calculate the scalar raised to the power of the index
+        for (i, elem) in vector.into_iter().enumerate() {
+            result[i] += elem * power; // Multiply each element by the power and add to the result
+        }
+    }
+
+    result
+}
+
+pub fn scale_and_sum<C: CurveAffine>(scalars: Vec<C::Scalar>, scalar: C::Scalar) -> C::Scalar {
+    let mut sum = C::Scalar::ZERO; // Initialize the sum to zero
+
+    for (index, value) in scalars.into_iter().enumerate() {
+        let power = scalar.pow_vartime([index as u64]); // Raise the scalar to the power of the index
+        sum += value * power; // Multiply and accumulate
+    }
+
+    sum // Return the final sum
+}
+
+pub fn scale_and_sum_points<C: CurveAffine>(elements: Vec<C>, s: C::Scalar) -> C {
+    elements
+        .into_iter()
+        .enumerate() // Get index and element
+        .map(|(index, elem)| {
+            let power = s.pow_vartime([index as u64]); // Calculate s raised to the power of the index
+            elem * power // Scale the element (point) by s^index
+        })
+        .fold(C::identity(), |acc, scaled_elem| (acc + scaled_elem.into()).into()) // Sum the scaled elements
+}
+
 pub fn inner_product<C: CurveAffine>(a: &[C::Scalar], b: &[C::Scalar]) -> C::Scalar {
     assert_eq!(a.len(), b.len());
 
@@ -69,7 +105,7 @@ pub fn transcript_e<C: CurveAffine, E: EncodedChallenge<C>, T: TranscriptWrite<C
 ) -> C::Scalar {
     let e: ChallengeScalar<C, T> = transcript.squeeze_challenge_scalar();
     if bool::from(e.is_zero()) {
-        panic!("zero challenge in final WIP round");
+        panic!("zero challenge in WIP round");
     }
     *e
 }
@@ -79,7 +115,7 @@ pub fn transcript_e_v<C: CurveAffine, E: EncodedChallenge<C>, T: TranscriptRead<
 ) -> C::Scalar {
     let e: ChallengeScalar<C, T> = transcript.squeeze_challenge_scalar();
     if bool::from(e.is_zero()) {
-        panic!("zero challenge in final WIP round");
+        panic!("zero challenge in WIP round");
     }
     *e
 }

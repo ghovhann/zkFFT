@@ -161,6 +161,7 @@ fn benchmark_verify(c: &mut Criterion) {
     );
 
     let proof_bytes = transcript.finalize();
+    println!("Proof size is {}kb", (proof_bytes.len()) as f64 / 1024.);
     let transcript = Blake2bRead::<_, pallas::Affine, Challenge255<_>>::init(&*proof_bytes);
 
     // Benchmark the `verify` function
@@ -180,5 +181,5 @@ fn benchmark_verify(c: &mut Criterion) {
 }
 
 // Group benchmarks together
-criterion_group!(benches, benchmark_prove, benchmark_verify);
-criterion_main!(benches);
+criterion_group!(single_zkFFT, benchmark_prove, benchmark_verify);
+criterion_main!(single_zkFFT);

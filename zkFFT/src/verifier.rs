@@ -7,24 +7,21 @@ pub fn verify<C: CurveAffine, E: EncodedChallenge<C>, T: TranscriptRead<C, E>>(
     generators_g: Vec<C>,
     generator_g: Vec<C>,
     generator_h: C,
-    b: Vec<Vec<C::Scalar>>,
+    witness_b: Vec<Vec<C::Scalar>>,
     p: P<C>,
 ) {
-
     let mut P_terms = match p {
         P::Point(point) => vec![(C::Scalar::ONE, point)],
         P::Terms(terms) => terms,
     };
 
     let mut g_bold = generators_g.clone();
-    let mut b: Vec<Vec<<<C as CurveAffine>::CurveExt as CurveExt>::ScalarExt>> = b.clone();
+    let mut b: Vec<Vec<<<C as CurveAffine>::CurveExt as CurveExt>::ScalarExt>> = witness_b.clone();
 
-    let mut challanges = vec![];
     while g_bold.len() > 1 {
         let (b1, b2): (Vec<Vec<_>>, Vec<Vec<_>>) =
             b.into_iter().map(split_vector_in_half).unzip();
         let (g_bold1, g_bold2) = split_vector_in_half(g_bold.clone());
-
 
         let L = transcript.read_point().unwrap();
         let R = transcript.read_point().unwrap();
@@ -32,7 +29,6 @@ pub fn verify<C: CurveAffine, E: EncodedChallenge<C>, T: TranscriptRead<C, E>>(
         let (e, inv_e, e_square, inv_e_square);
         (e, inv_e, e_square, inv_e_square, g_bold) =
             next_G_H_v(transcript, g_bold1, g_bold2);
-        challanges.push(e);
     
         b = vec![];
         for (b1_i, b2_i) in b1.iter().zip(b2.iter()) {

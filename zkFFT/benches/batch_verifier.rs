@@ -1,10 +1,10 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use zkFFT::{utils::*, verifier, prover};
+use zkFFT::{batch_verifier, prover, utils::*};
 use ff::PrimeField;
 use group::Group;
 use halo2_proofs::{
     arithmetic::{CurveAffine, Field},
-    transcript::{Blake2bRead, Blake2bWrite, Challenge255},
+    transcript::{self, Blake2bRead, Blake2bWrite, Challenge255},
 };
 use pasta_curves::{arithmetic::CurveExt, pallas, Ep};
 use rand::Rng;
@@ -49,72 +49,13 @@ pub fn gens<C: CurveAffine>(k: u64, n: u64) -> (Vec<C>, Vec<C>, C) {
     )
 }
 
-fn benchmark_prove(c: &mut Criterion) {
+
+fn benchmark_batch_verify(c: &mut Criterion) {
     let mut criterion = Criterion::default().sample_size(50);
 
-    let k = 64;
+    let k = 256;
     let n = k;
-    let mut a = Vec::with_capacity(n);
-    let mut b = Vec::with_capacity(k);
-
-    for _ in 0..n {
-        let mut rng = rand::thread_rng();
-        a.push(pallas::Scalar::from(rng.gen::<u64>()));
-    }
-
-    let omega = pallas::Scalar::ROOT_OF_UNITY;
-
-    for i in 0..k {
-        let mut tmp = vec![];
-        for j in 0..n {
-            tmp.push(omega.pow_vartime([(j*i) as u64, 0, 0, 0]));        
-        }
-        b.push(tmp.clone());
-    }
-
-    let w = WipWitness {
-        a,
-        b,
-        alpha: pallas::Scalar::from(5),
-    };
-
-    let (gens_g, gen_g, gen_h) = gens::<pallas::Affine>(k as u64, n as u64);
-    let mut ip = vec![];
-    for i in 0..k {
-        ip.push(inner_product::<pallas::Affine>(&w.a, &w.b[i]))
-    }
-
-    let mut commit = Ep::identity();
-    for i in 0..n {
-        commit += gens_g[i] * w.a[i];
-    }
-
-    for i in 0..k {
-        commit += gen_g[i] * ip[i];
-    }
-    commit += gen_h * w.alpha;
-
-    let transcript = Blake2bWrite::<_, pallas::Affine, Challenge255<_>>::init(vec![]);
-    // Benchmark the `prove` function
-    criterion.bench_function("Prove Benchmark", |b| {
-        b.iter(|| {
-            let mut transcript_clone = transcript.clone();  // Clone the transcript to reuse in the benchmark
-            prover::prove(
-                &mut transcript_clone,
-                w.clone(),
-                gens_g.clone().into_iter().map(|ep| ep.into()).collect(),
-                gen_g.clone().into_iter().map(|ep| ep.into()).collect(),
-                gen_h.into(),
-            );
-        });
-    });
-}
-
-fn benchmark_verify(c: &mut Criterion) {
-    let mut criterion = Criterion::default().sample_size(50);
-
-    let k = 64;
-    let n = k;
+    let batch_size = 100;
     let mut a = Vec::with_capacity(n);
     let mut b = Vec::with_capacity(k);
 
@@ -164,26 +105,32 @@ fn benchmark_verify(c: &mut Criterion) {
         gen_h.into(),
     );
 
-    let proof_bytes = transcript.finalize();
-    println!("Proof size is {}kb", (proof_bytes.len()) as f64 / 1024.);
-    let transcript = Blake2bRead::<_, pallas::Affine, Challenge255<_>>::init(&*proof_bytes);
+    let proof_bytes = transcript.finalize();    
+    let commits = vec![P::Point(commit.into()); batch_size];
 
     // Benchmark the `verify` function
-    criterion.bench_function("Verify Benchmark", |b| {
+    criterion.bench_function("Batch Verify Benchmark", |b| {
         b.iter(|| {
-            let mut transcript_clone = transcript.clone();  // Clone the transcript to reuse in the benchmark
-            verifier::verify(
-                &mut transcript_clone,
+            let mut transcripts = Vec::with_capacity(batch_size);
+            for _ in 0..batch_size {
+                let mut transcript = Blake2bRead::<_, pallas::Affine, Challenge255<_>>::init(&*proof_bytes);
+                transcripts.push(transcript);
+            }
+            let mut transcript_refs = transcripts.iter_mut().collect();
+
+            let commits_clone = commits.clone();
+            batch_verifier::verify(
+                &mut transcript_refs,
                 gens_g.clone().into_iter().map(|ep| ep.into()).collect(),
                 gen_g.clone().into_iter().map(|ep| ep.into()).collect(),
                 gen_h.into(),
                 w.b.clone(),
-                P::Point(commit.into()),
+                commits_clone,
             );
         });
     });
 }
 
 // Group benchmarks together
-criterion_group!(single_zkFFT, benchmark_prove, benchmark_verify);
-criterion_main!(single_zkFFT);
+criterion_group!(batch_verifier, benchmark_batch_verify);
+criterion_main!(batch_verifier);

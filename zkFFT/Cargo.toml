@@ -25,3 +25,7 @@ harness = false
 [[bench]]
 name = "aggregated_zkFFT"
 harness = false
+
+[[bench]]
+name = "batch_verifier"
+harness = false

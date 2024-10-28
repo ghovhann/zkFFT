@@ -20,7 +20,7 @@ pub struct WipProof<C: CurveAffine> {
     pub delta_answer: C::Scalar,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum P<C: CurveAffine> {
     Point(C),
     Terms(Vec<(C::Scalar, C)>),

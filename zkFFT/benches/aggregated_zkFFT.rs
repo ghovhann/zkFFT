@@ -50,7 +50,9 @@ pub fn gens<C: CurveAffine>(k: u64, n: u64) -> (Vec<C>, Vec<C>, C) {
 }
 
 fn benchmark_prove(c: &mut Criterion) {
-    let k = 256;
+    let mut criterion = Criterion::default().sample_size(10);
+
+    let k = 4096;
     let n = k;
     let batch_size = 100;
     let mut a = Vec::with_capacity(n);
@@ -95,7 +97,7 @@ fn benchmark_prove(c: &mut Criterion) {
 
     let transcript = Blake2bWrite::<_, pallas::Affine, Challenge255<_>>::init(vec![]);
     // Benchmark the `prove` function
-    c.bench_function("Aggregated Prove Benchmark", |b| {
+    criterion.bench_function("Aggregated Prove Benchmark", |b| {
         b.iter(|| {
             let mut transcript_clone = transcript.clone();  // Clone the transcript to reuse in the benchmark
             aggregated_prover::prove(
@@ -111,7 +113,9 @@ fn benchmark_prove(c: &mut Criterion) {
 }
 
 fn benchmark_verify(c: &mut Criterion) {
-    let k = 256;
+    let mut criterion = Criterion::default().sample_size(10);
+
+    let k = 4096;
     let n = k;
     let batch_size = 100;
     let mut a = Vec::with_capacity(n);
@@ -169,7 +173,7 @@ fn benchmark_verify(c: &mut Criterion) {
     let transcript = Blake2bRead::<_, pallas::Affine, Challenge255<_>>::init(&*proof_bytes);
 
     // Benchmark the `verify` function
-    c.bench_function("Aggregated Verify Benchmark", |b| {
+    criterion.bench_function("Aggregated Verify Benchmark", |b| {
         b.iter(|| {
             let mut transcript_clone = transcript.clone();  // Clone the transcript to reuse in the benchmark
             aggregated_verifier::verify(

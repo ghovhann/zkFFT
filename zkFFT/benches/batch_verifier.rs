@@ -51,9 +51,9 @@ pub fn gens<C: CurveAffine>(k: u64, n: u64) -> (Vec<C>, Vec<C>, C) {
 
 
 fn benchmark_batch_verify(c: &mut Criterion) {
-    let mut criterion = Criterion::default().sample_size(50);
+    let mut criterion = Criterion::default().sample_size(25);
 
-    let k = 256;
+    let k = 2048;
     let n = k;
     let batch_size = 100;
     let mut a = Vec::with_capacity(n);
@@ -116,11 +116,11 @@ fn benchmark_batch_verify(c: &mut Criterion) {
                 let mut transcript = Blake2bRead::<_, pallas::Affine, Challenge255<_>>::init(&*proof_bytes);
                 transcripts.push(transcript);
             }
-            let mut transcript_refs = transcripts.iter_mut().collect();
+            // let mut transcript_refs = transcripts.iter_mut().collect();
 
             let commits_clone = commits.clone();
             batch_verifier::verify(
-                &mut transcript_refs,
+                &mut transcripts,
                 gens_g.clone().into_iter().map(|ep| ep.into()).collect(),
                 gen_g.clone().into_iter().map(|ep| ep.into()).collect(),
                 gen_h.into(),

@@ -52,7 +52,7 @@ pub fn gens<C: CurveAffine>(k: u64, n: u64) -> (Vec<C>, Vec<C>, C) {
 fn benchmark_prove(c: &mut Criterion) {
     let mut criterion = Criterion::default().sample_size(10);
 
-    let k = 4096;
+    let k = 2048;
     let n = k;
     let batch_size = 100;
     let mut a = Vec::with_capacity(n);
@@ -115,7 +115,7 @@ fn benchmark_prove(c: &mut Criterion) {
 fn benchmark_verify(c: &mut Criterion) {
     let mut criterion = Criterion::default().sample_size(10);
 
-    let k = 4096;
+    let k = 2048;
     let n = k;
     let batch_size = 100;
     let mut a = Vec::with_capacity(n);
